@@ -9,17 +9,49 @@ else's.
 [restful-booker](https://restful-booker.herokuapp.com) — a public demo API with
 real auth, real persistence, and several real defects.
 
+## Prerequisites
+
+| Requirement | Notes |
+|---|---|
+| **Node.js 22** | pinned in `.nvmrc` |
+| **Network access** | `restful-booker.herokuapp.com` |
+| **Nothing else** | no browser, no Docker, no database, no seed step |
+
+`globalSetup` probes the target before the first test, so an unreachable or
+sleeping demo instance reports once with a clear message instead of timing out
+in every spec.
+
+Credentials default to the published demo pair and can be overridden:
+
 ```bash
-nvm use                  # Node 22
-npm ci
-npm test                 # everything
+API_BASE_URL=... API_USERNAME=... API_PASSWORD=... npm test
+```
+
+## Setup
+
+```bash
+nvm use     # or: nvm install 22
+npm ci      # exact lockfile install
+```
+
+## Running
+
+```bash
+npm test                 # all 4 specs
 npm run test:auth        # authorization matrix
 npm run test:bookings    # CRUD and filters
 npm run test:contract    # documented API defects
-npm run typecheck
+npm run typecheck        # tsc --noEmit, strict
+
+npm run test:serial      # --runInBand, for debugging interleaved output
+npm run coverage         # coverage over src/
 ```
 
-No Docker, no local services, no seed step. Clone and run.
+A single test by name:
+
+```bash
+npx jest -t "replaces every field with PUT"
+```
 
 ## Layout
 
