@@ -35,6 +35,37 @@ const config: Config = {
     testTimeout: 30_000,
     maxWorkers: process.env.CI ? 2 : '50%',
 
+    /**
+     * Reporters.
+     *
+     * `default` keeps the human-readable console output. `jest-junit` writes
+     * JUnit XML, which is the only part of this that matters in CI: without a
+     * machine-readable report, a failure is a line buried in a 2000-line log
+     * that somebody has to scroll to. With one, GitHub Actions, Jenkins and
+     * Azure Pipelines all annotate the failing test by name, and flaky-test
+     * history becomes queryable instead of anecdotal.
+     *
+     * JUnit XML rather than a prettier HTML report because XML is what every CI
+     * already parses. An HTML report is for a human reading it deliberately;
+     * XML is for the failure finding the human.
+     */
+    reporters: [
+        'default',
+        [
+            'jest-junit',
+            {
+                outputDirectory: 'reports',
+                outputName: 'junit.xml',
+                // Without these the suite name is the file path, which reads
+                // badly in a CI UI.
+                classNameTemplate: '{classname}',
+                titleTemplate: '{title}',
+                ancestorSeparator: ' > ',
+                addFileAttribute: 'true',
+            },
+        ],
+    ],
+
     verbose: true,
     clearMocks: true,
     restoreMocks: true,

@@ -9,6 +9,6 @@
  * The hook is kept so the lifecycle is visible, and so a future suite-level
  * resource (a seeded account, a leased environment) has an obvious home.
  */
-export default async function globalTeardown(): Promise<void> {
+export default function globalTeardown(): void {
     process.stdout.write('[teardown] per-spec cleanup already ran\n');
 }

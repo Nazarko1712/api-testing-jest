@@ -27,13 +27,16 @@ export default async function globalSetup(): Promise<void> {
             throw new Error(`unexpected health status ${response.status}`);
         }
 
-        process.stdout.write(
-            `\n[setup] ${BASE_URL} reachable in ${Date.now() - started}ms\n`,
-        );
+        process.stdout.write(`\n[setup] ${BASE_URL} reachable in ${Date.now() - started}ms\n`);
     } catch (error) {
+        // `cause` matters more than it looks: without it the stack trace stops
+        // at this line, so a DNS failure, a TLS error and a 20s timeout all
+        // read as the same opaque message. ESLint's `preserve-caught-error`
+        // flags exactly this.
         throw new Error(
             `[setup] target API is not reachable at ${BASE_URL}: ${String(error)}\n` +
                 'The suite runs against a public demo instance; it may be sleeping or down.',
+            { cause: error },
         );
     }
 }

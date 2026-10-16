@@ -27,7 +27,7 @@ class BookingClient extends BaseClient {
         status = 200,
     ): Promise<string> {
         const response = await this.post('/auth', { username, password }, status);
-        return response.json.token as string;
+        return (response.json as { token: string }).token;
     }
 
     async listIds(status = 200) {

@@ -70,17 +70,14 @@ describe('Known API defects', () => {
         // The contrast case: PUT replaces the whole resource, so a partial body
         // is genuinely a client error. Included so the spec is not only a list
         // of complaints — the API gets this one right.
-        const response = await fetch(
-            `https://restful-booker.herokuapp.com/booking/${bookingid}`,
-            {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Cookie: `token=${token}`,
-                },
-                body: JSON.stringify({ firstname: 'OnlyThisField' }),
+        const response = await fetch(`https://restful-booker.herokuapp.com/booking/${bookingid}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                Cookie: `token=${token}`,
             },
-        );
+            body: JSON.stringify({ firstname: 'OnlyThisField' }),
+        });
 
         expect(response.status).toBe(400);
 

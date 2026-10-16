@@ -11,11 +11,11 @@ real auth, real persistence, and several real defects.
 
 ## Prerequisites
 
-| Requirement | Notes |
-|---|---|
-| **Node.js 22** | pinned in `.nvmrc` |
-| **Network access** | `restful-booker.herokuapp.com` |
-| **Nothing else** | no browser, no Docker, no database, no seed step |
+| Requirement        | Notes                                            |
+| ------------------ | ------------------------------------------------ |
+| **Node.js 22**     | pinned in `.nvmrc`                               |
+| **Network access** | `restful-booker.herokuapp.com`                   |
+| **Nothing else**   | no browser, no Docker, no database, no seed step |
 
 `globalSetup` probes the target before the first test, so an unreachable or
 sleeping demo instance reports once with a clear message instead of timing out
@@ -76,8 +76,8 @@ tests/
 ### 1. The expected status code is a parameter, not a branch
 
 ```ts
-await api.getBooking(id);           // expects 200
-await api.getBooking(999999, 404);  // expects 404
+await api.getBooking(id); // expects 200
+await api.getBooking(999999, 404); // expects 404
 ```
 
 Negative cases travel the **same code path** as positive ones. The alternative —
@@ -90,8 +90,8 @@ before it asserts anything.
 
 ### 2. Schemas and value assertions answer different questions
 
-A value assertion answers *"is this booking's name Alice"*. A schema answers
-*"is this still a booking"*.
+A value assertion answers _"is this booking's name Alice"_. A schema answers
+_"is this still a booking"_.
 
 The regression that reaches production is the second kind: a field changes from
 number to string, an optional field becomes required, a nested object flattens.
@@ -109,7 +109,7 @@ list rather than `expected true, received false`.
 ### 3. Test data is generated per run, never shared
 
 ```ts
-aBooking().withUniqueName().build()
+aBooking().withUniqueName().build();
 ```
 
 Shared fixtures are the first thing that makes a suite un-parallelisable: two
@@ -130,12 +130,12 @@ play the role of other people.
 ## Authorization matrix
 
 | Operation | No token | Forged token | Valid token |
-|---|---|---|---|
-| GET | allow | allow | allow |
-| POST | allow | allow | allow |
-| PUT | **deny** | **deny** | allow |
-| PATCH | **deny** | **deny** | allow |
-| DELETE | **deny** | **deny** | allow |
+| --------- | -------- | ------------ | ----------- |
+| GET       | allow    | allow        | allow       |
+| POST      | allow    | allow        | allow       |
+| PUT       | **deny** | **deny**     | allow       |
+| PATCH     | **deny** | **deny**     | allow       |
+| DELETE    | **deny** | **deny**     | allow       |
 
 The question each test answers is not "does the endpoint work" but "does it
 refuse the people it should". A write endpoint that works perfectly for an
@@ -149,12 +149,12 @@ authorization and not a malformed request.
 `tests/contract/api-defects.spec.ts` asserts each one **as it actually behaves**,
 with a comment stating what the correct response would be.
 
-| Defect | Actual | Correct |
-|---|---|---|
-| Successful DELETE | `201 Created` | `200` or `204` |
-| `GET /ping` health check | `201 Created` | `200` |
-| Failed authentication | `200` + `{reason}` | `401 Unauthorized` |
-| Malformed booking id | `404` | `400` is more precise |
+| Defect                   | Actual             | Correct               |
+| ------------------------ | ------------------ | --------------------- |
+| Successful DELETE        | `201 Created`      | `200` or `204`        |
+| `GET /ping` health check | `201 Created`      | `200`                 |
+| Failed authentication    | `200` + `{reason}` | `401 Unauthorized`    |
+| Malformed booking id     | `404`              | `400` is more precise |
 
 The reasoning for asserting reality rather than correctness: asserting the
 correct behaviour leaves the suite permanently red, and a permanently red suite
@@ -194,3 +194,70 @@ clear message.
 **Pactum** supplies the HTTP layer and the status expectation; **AJV** supplies
 the contract check. Keeping them separate means a shape regression and a value
 regression fail with different messages.
+
+## Linting and reports
+
+```bash
+npm run lint          # ESLint 9, flat config, type-checked rules
+npm run lint:fix
+npm run format        # Prettier, writes
+npm run format:check  # Prettier, reports (this is what CI runs)
+npm run typecheck     # tsc --noEmit
+```
+
+| Rule                                      | What it catches                                                             |
+| ----------------------------------------- | --------------------------------------------------------------------------- |
+| `@typescript-eslint/no-floating-promises` | an un-awaited `expect(...).resolves` passes having checked nothing          |
+| `jest/no-focused-tests`                   | one `test.only` on main reduces CI to that test while the badge stays green |
+| `jest/no-disabled-tests`                  | a `skip` with no ticket is coverage that quietly vanished                   |
+| `jest/expect-expect`                      | a test body with no assertion                                               |
+| `jest/no-conditional-expect`              | an assertion inside an `if` can be skipped                                  |
+
+### `expect-expect` was right about the symptom and wrong about the cause
+
+Eight tests in this repo contain no `expect` at all:
+
+```ts
+it('rejects PUT without a token', async () => {
+  await bookingClient.replaceBooking(bookingId, aBooking().build(), '', 403);
+});
+```
+
+The assertion is real — it lives in the client. `expectStatus(403)` throws when
+the API answers anything else, which is the entire point of passing the expected
+status as a parameter. The fix was to tell the rule where the assertions are:
+
+```js
+'jest/expect-expect': ['error', { assertFunctionNames: ['expect', 'bookingClient.*'] }]
+```
+
+Switching the rule off would have been one line shorter and would also have
+stopped catching a test body that genuinely asserts nothing.
+
+### Typing the transport
+
+`pactum` declares `toss(): Promise<IncomingMessage> | Promise<any>`, and a union
+containing `any` collapses to `any` — so every `response.json` downstream was
+untyped and 23 lint errors deep. The narrowing happens once, in
+`BaseClient`, via an `ApiResponse` interface whose `json` is `unknown`; each
+client method casts to its own response shape, next to the knowledge that
+justifies the cast.
+
+### Reports
+
+`jest-junit` writes `reports/junit.xml` alongside the normal console output. XML
+rather than a prettier HTML report because XML is what every CI already parses:
+GitHub Actions, Jenkins and Azure all annotate the failing test by name instead
+of leaving it buried in a 2000-line log. An HTML report is for a human reading
+it deliberately; XML is for the failure finding the human.
+
+### Where this runs in CI
+
+Linting and formatting are their **own job**, not steps inside the test job.
+They need no browser, no network and no secrets, and they finish in seconds, so
+as a separate job they run concurrently with the suite: a formatting failure
+does not wait behind a long test run, and a real test failure is not hidden
+behind a formatting failure. Both verdicts arrive on their own.
+
+CI runs the `--check` variants, never the formatter itself. A pipeline reports
+on the branch it was asked to verify; it does not rewrite it.

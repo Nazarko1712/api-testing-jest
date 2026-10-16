@@ -39,7 +39,7 @@ describe('Authorization', () => {
     });
 
     describe('token issuance', () => {
-        it('issues a token for valid credentials', async () => {
+        it('issues a token for valid credentials', () => {
             expect(token).toEqual(expect.any(String));
             expect(token.length).toBeGreaterThan(0);
         });
