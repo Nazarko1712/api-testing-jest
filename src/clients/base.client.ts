@@ -1,0 +1,67 @@
+import { spec } from 'pactum';
+
+export const BASE_URL = process.env.API_BASE_URL ?? 'https://restful-booker.herokuapp.com';
+
+/**
+ * Base HTTP client.
+ *
+ * The design decision worth defending: every method takes the EXPECTED status
+ * code as a parameter, defaulting to the happy path.
+ *
+ *   await api.getBooking(id);           // expects 200
+ *   await api.getBooking(999999, 404);  // expects 404
+ *
+ * So negative cases travel the same code path as positive ones. The alternative
+ * — a separate "negative" client, or try/catch around every unhappy call —
+ * duplicates the request-building logic and lets the two copies drift until the
+ * negative tests are quietly exercising a different request than the positive
+ * ones.
+ *
+ * It also makes the expectation explicit at the call site, which reads as
+ * documentation: the test states what it believes before it asserts anything.
+ */
+export abstract class BaseClient {
+    protected readonly baseUrl = BASE_URL;
+
+    protected async get(path: string, status: number, token?: string) {
+        const request = spec().get(`${this.baseUrl}${path}`).withHeaders('Accept', 'application/json');
+        if (token) request.withHeaders('Cookie', `token=${token}`);
+        return request.expectStatus(status).toss();
+    }
+
+    protected async post(path: string, body: unknown, status: number, token?: string) {
+        const request = spec()
+            .post(`${this.baseUrl}${path}`)
+            .withHeaders('Content-Type', 'application/json')
+            .withHeaders('Accept', 'application/json')
+            .withJson(body as object);
+        if (token) request.withHeaders('Cookie', `token=${token}`);
+        return request.expectStatus(status).toss();
+    }
+
+    protected async put(path: string, body: unknown, status: number, token?: string) {
+        const request = spec()
+            .put(`${this.baseUrl}${path}`)
+            .withHeaders('Content-Type', 'application/json')
+            .withHeaders('Accept', 'application/json')
+            .withJson(body as object);
+        if (token) request.withHeaders('Cookie', `token=${token}`);
+        return request.expectStatus(status).toss();
+    }
+
+    protected async patch(path: string, body: unknown, status: number, token?: string) {
+        const request = spec()
+            .patch(`${this.baseUrl}${path}`)
+            .withHeaders('Content-Type', 'application/json')
+            .withHeaders('Accept', 'application/json')
+            .withJson(body as object);
+        if (token) request.withHeaders('Cookie', `token=${token}`);
+        return request.expectStatus(status).toss();
+    }
+
+    protected async delete(path: string, status: number, token?: string) {
+        const request = spec().delete(`${this.baseUrl}${path}`);
+        if (token) request.withHeaders('Cookie', `token=${token}`);
+        return request.expectStatus(status).toss();
+    }
+}
