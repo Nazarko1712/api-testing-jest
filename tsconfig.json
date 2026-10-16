@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "lib": ["ES2022"],
+    "types": ["node", "jest"],
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+
+    "baseUrl": ".",
+    "paths": {
+      "@clients/*": ["src/clients/*"],
+      "@schemas/*": ["src/schemas/*"],
+      "@support/*": ["src/support/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "tests/**/*.ts", "jest.config.ts"]
+}
